@@ -1,4 +1,5 @@
 const Twitter = require('twitter');
+const { format, subHours } = require('date-fns');
 
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
@@ -8,9 +9,24 @@ const client = new Twitter({
 
 async function runBot() {
   try {
-    const stream = client.stream('statuses/filter', { track: ['Derry', 'Londonderry'] });
+    // Get the current date and time
+    const now = new Date();
+    // Get the date and time from one hour ago
+    const oneHourAgo = subHours(now, 1);
 
-    stream.on('data', (tweet) => {
+    // Format dates for the query
+    const since = format(oneHourAgo, 'yyyy-MM-dd');
+    const until = format(now, 'yyyy-MM-dd');
+
+    // Fetch tweets from the past hour using the search API
+    const tweets = await client.get('search/tweets', {
+      q: 'Derry OR Londonderry',
+      count: 100, // Adjust this number based on your needs
+      result_type: 'recent', // Ensure we get the most recent tweets
+    });
+
+    // Process each tweet
+    tweets.statuses.forEach(tweet => {
       const text = tweet.text.toLowerCase();
       if (text.includes('derry')) {
         client.post('statuses/update', {
@@ -38,14 +54,10 @@ async function runBot() {
         });
       }
     });
-
-    stream.on('error', (error) => {
-      console.error('Stream error', error);
-    });
-
   } catch (error) {
-    console.error('Scheduled function error', error);
+    console.error('Error in runBot function', error);
   }
 }
 
+// Run the bot
 runBot();
