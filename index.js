@@ -24,6 +24,8 @@ async function runBot() {
       count: 100, // Adjust this number based on your needs
       result_type: 'recent', // Ensure we get the most recent tweets
     });
+    // Log the number of tweets found
+    console.log(`Found ${tweets.length} tweets matching the criteria. since: ${since}`);
 
     // Process each tweet
     tweets.statuses.forEach(tweet => {
