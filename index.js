@@ -1,6 +1,7 @@
 const Twitter = require('twitter');
 const { format, subHours } = require('date-fns');
 
+// Initialize Twitter client
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
   consumer_secret: process.env.CONSUMER_SECRET,
@@ -9,57 +10,45 @@ const client = new Twitter({
 
 async function runBot() {
   try {
-    // Get the current date and time
+    // Define time range for the past hour
     const now = new Date();
-    // Get the date and time from one hour ago
-    const oneHourAgo = subHours(now, 1);
-
-    // Format dates for the query
-    const since = format(oneHourAgo, 'yyyy-MM-dd');
+    const since = format(subHours(now, 1), 'yyyy-MM-dd');
     const until = format(now, 'yyyy-MM-dd');
 
-    // Fetch tweets from the past hour using the search API
+    // Search for tweets
     const tweets = await client.get('search/tweets', {
       q: 'Derry OR Londonderry',
+      since: since,
+      until: until,
       count: 100, // Adjust this number based on your needs
-      result_type: 'recent', // Ensure we get the most recent tweets
     });
+
     // Log the number of tweets found
-    console.log(`Found ${tweets.length} tweets matching the criteria. since: ${since}`);
+    console.log(`Found ${tweets.statuses.length} tweets matching the criteria.`);
 
     // Process each tweet
-    tweets.statuses.forEach(tweet => {
+    for (const tweet of tweets.statuses) {
       const text = tweet.text.toLowerCase();
       if (text.includes('derry')) {
-        client.post('statuses/update', {
+        await client.post('statuses/update', {
           status: 'Actually, it\'s Londonderry. 😉',
           in_reply_to_status_id: tweet.id_str,
-          auto_populate_reply_metadata: true
-        }, (err, tweet, response) => {
-          if (err) {
-            console.error('Error posting tweet', err);
-          } else {
-            console.log('Successfully posted tweet', tweet);
-          }
+          auto_populate_reply_metadata: true,
         });
+        console.log(`Replied to tweet ID ${tweet.id_str} about 'derry'.`);
       } else if (text.includes('londonderry')) {
-        client.post('statuses/update', {
+        await client.post('statuses/update', {
           status: 'Actually, it\'s Derry. 😉',
           in_reply_to_status_id: tweet.id_str,
-          auto_populate_reply_metadata: true
-        }, (err, tweet, response) => {
-          if (err) {
-            console.error('Error posting tweet', err);
-          } else {
-            console.log('Successfully posted tweet', tweet);
-          }
+          auto_populate_reply_metadata: true,
         });
+        console.log(`Replied to tweet ID ${tweet.id_str} about 'londonderry'.`);
       }
-    });
+    }
+
   } catch (error) {
-    console.error('Error in runBot function', error);
+    console.error('Error in bot execution:', error);
   }
 }
 
-// Run the bot
 runBot();
